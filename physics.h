@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 //
 //  physics.hpp
 //  Lab03
@@ -9,25 +9,26 @@
 
 /*
 Thruster class for applying angles to the LM, this is currently just stubbed out til physics is fully implemented.
+The thruster class would work well and allow us to multiply and  change the locations and stats of thrusters, but its much more complex than it needs to be for this.
 */
-class Thruster {
-private:
-    double forceToApply;
-    double maxFuelBurn;
-    double maxForce;
-    double fuelBurn;
-    double direction;
-    double lockInputDirection;
-    void burnFuel();
-public:
-    bool ThrusterOn = false;
-    double getThrusterForce();
-    double getDirection();
-    double getFuelBurned();
-    void turnOnThruster();
-    void turnOffThruster();
-
-};
+//class Thruster {
+//private:
+//    double forceToApply;
+//    double maxFuelBurn;
+//    double maxForce;
+//    double fuelBurn;
+//    double direction;
+//    double lockInputDirection;
+//    void burnFuel();
+//public:
+//    bool ThrusterOn = false;
+//    double getThrusterForce();
+//    double getDirection();
+//    double getFuelBurned();
+//    void turnOnThruster();
+//    void turnOffThruster();
+//
+//};
 
 
 
@@ -140,6 +141,25 @@ public:
     }
     void setAngle(double ang) {
         Angle = ang;
+    }
+};
+
+/*
+This fuel structure simply provides a custom data type that doesnt go below 0, and sets the base value for the fuel which is a constant 5000
+*/
+struct Fuel {
+    //fuel remaining 
+    int fuelLeft = 5000;
+
+    //alter the fuel amount 
+    void changeFuel(int amountToChange) {
+        //this if statement stops fuelLeft from going under 0 since its impossible to ahve negative fuel
+        if (this->fuelLeft + amountToChange > 0) {
+            this->fuelLeft = fuelLeft + amountToChange;
+        }
+        else {
+            fuelLeft = 0;
+        }
     }
 };
 #endif /* physics_hpp */

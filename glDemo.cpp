@@ -31,7 +31,7 @@ public:
     Demo(const Point& ptUpperRight) :
         angle(0.0),
         ptStar(ptUpperRight.getX() - 20.0, ptUpperRight.getY() - 20.0),
-        ptLM(ptUpperRight.getX() / 2.0, ptUpperRight.getY() / 1.5),
+        ptLM(ptUpperRight.getX() / 2.0, ptUpperRight.getY() ),
         ground(ptUpperRight)
 
     {
@@ -51,6 +51,7 @@ public:
     vector<Point> placedStars;
     bool placed;
     Collisions collision;
+    Fuel fuel;
 
 };
 
@@ -69,38 +70,62 @@ void callBack(const Interface* pUI, void* p)
     // is the first step of every single callback function in OpenGL. 
     Demo* pDemo = (Demo*)p;
 
+    //check if the lander crashed
     if (pDemo->collision.isCrash(pDemo->ptLM, pDemo->ptPhysics, pDemo->ground)) {
-        gout.setPosition(Point(200, 200));
+        gout.setPosition(Point(170, 200));
         gout << "you crashed";
     }
+    //check if the lander hit the platform
     else if (pDemo->ground.onPlatform(pDemo->ptLM, 20)) {
+        //check if it hit soft enough to win
         if ((pDemo)->ptPhysics.getSpeed() < 4.0) {
-            gout.setPosition(Point(200, 200));
+            gout.setPosition(Point(170, 200));
             gout << "You won!";
+        }
+        //if it hit too hard let the user know
+        else {
+            gout.setPosition(Point(170, 200));
+            gout << "You hit too hard!";
         }
     }
     
     else {
 
-        // move the ship around
-        if (pUI->isRight()) {
-            pDemo->angle -= 0.1;
-            pDemo->ptPhysics.setAngle(pDemo->angle + 10);  // Shifts angle of thrust
-        }
-        if (pUI->isLeft()) {
-            pDemo->angle += 0.1;
-            pDemo->ptPhysics.setAngle(pDemo->angle - 10);  // Shifts angle of thrust
-        }
-        if (pUI->isDown()) {
-            pDemo->ptPhysics.computeMovement(pDemo->ptLM.getX(), pDemo->ptLM.getY()); // calculates position, velocity and
-            pDemo->ptLM.setY(pDemo->ptPhysics.getY()); // Gets y from the predicted measurements and sets value.
-            pDemo->ptLM.setX(pDemo->ptPhysics.getX()); // Gets x from the predicted measurements and sets value to LM.
+        //check if the ship has fuel to move
+        if (pDemo->fuel.fuelLeft != 0) {
+            // if the ship has fuel move the ship around
+            if (pUI->isRight()) {
+                pDemo->angle -= 0.1;
+                pDemo->ptPhysics.setAngle(pDemo->angle + 10);  // Shifts angle of thrust
+                pDemo->fuel.changeFuel(-1);
+            }
+            if (pUI->isLeft()) {
+                pDemo->angle += 0.1;
+                pDemo->ptPhysics.setAngle(pDemo->angle - 10);  // Shifts angle of thrust
+                pDemo->fuel.changeFuel(-1);
+            }
+            if (pUI->isDown()) {
+                pDemo->ptPhysics.computeMovement(pDemo->ptLM.getX(), pDemo->ptLM.getY()); // calculates position, velocity and
+                pDemo->ptLM.setY(pDemo->ptPhysics.getY()); // Gets y from the predicted measurements and sets value.
+                pDemo->ptLM.setX(pDemo->ptPhysics.getX()); // Gets x from the predicted measurements and sets value to LM.
+                pDemo->fuel.changeFuel(-10);
+            }
+            else {
+                pDemo->ptPhysics.constantFall(pDemo->ptLM.getX(), pDemo->ptLM.getY()); // if not pressing anything, gravity pulls down.
+                pDemo->ptLM.setY(pDemo->ptPhysics.getY());         // sets y
+                pDemo->ptLM.setX(pDemo->ptPhysics.getX());
+            }
         }
         else {
+            //apply a ocnstant fall if the user is out of fuel
             pDemo->ptPhysics.constantFall(pDemo->ptLM.getX(), pDemo->ptLM.getY()); // if not pressing anything, gravity pulls down.
             pDemo->ptLM.setY(pDemo->ptPhysics.getY());         // sets y
             pDemo->ptLM.setX(pDemo->ptPhysics.getX());
+            //display the our of fuel indicator
+            gout.setPosition(Point(170, 200));
+            gout << "Out of Fuel!";
         }
+        
     }
 
         // draw the ground
@@ -113,7 +138,7 @@ void callBack(const Interface* pUI, void* p)
 
         // put some text on the screen
         gout.setPosition(Point(20, 375));
-        gout << "Fuel: ";   // value of current fuel level goes here
+        gout << "Fuel: " << pDemo->fuel.fuelLeft;   // value of current fuel level goes here
 
         gout.setPosition(Point(20, 350));
         gout << "Altitude: " << (int)pDemo->ground.getElevation(pDemo->ptLM) << " meters" << "\n";
@@ -127,27 +152,33 @@ void callBack(const Interface* pUI, void* p)
 
 
 
-
+        //this algoirthm creates the stars in the background. 
+        //the while loop ensures this only chooses the stars placements once.
         if (pDemo->placed == false)
         {
+            //randomly place 50 stars above ground level.
             for (int i = 0; i < 50; i++)
             {
                 pDemo->placedStars.resize(50);
+                //gain vertical and horizontal cords the ground level
                 int groundHorizontalCord = random(0, 400);
                 Point groundHorizontalPoint = Point(groundHorizontalCord, 0.0);
-                int starAttemptedPlacement = 0;
 
+                //convert the chosen star location to a point data type  
                 int groundVerticalCord = pDemo->ground.getElevation(groundHorizontalPoint) * -1;
                 Point starPosition = Point(groundHorizontalCord, random(groundVerticalCord, 400));
 
+                //draw the star
                 gout.drawStar(starPosition);
 
+                //add the star to the star  list
                 pDemo->placedStars[i] = starPosition;
 
 
             }
             pDemo->placed = true;
         }
+        //this draws the stars after they have been placed.
         else {
             for (int i = 0; i < pDemo->placedStars.size() - 1; i++)
             {
